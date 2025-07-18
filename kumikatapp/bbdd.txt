@@ -1,0 +1,319 @@
+
+DROP DATABASE kumikatapp;
+-- ALTER TABLE tablename AUTO_INCREMENT = 1 //es para reiniciar el auto increment si hay errores
+CREATE DATABASE IF NOT EXISTS kumikatapp;
+
+USE kumikatapp;
+
+/*Tablas sin foreign keys*/
+-- table ESCUELA(cif_escuela(PK), nombre, direccion, email, tlfo)
+CREATE TABLE escuela (
+    cif_escuela VARCHAR(9) PRIMARY KEY,
+    nombre VARCHAR(50) NOT NULL,
+    direccion VARCHAR(50) ,
+    email VARCHAR(50) ,
+    tlfo VARCHAR(15) 
+);
+
+-- Table: TECNICA (id_tecnica(PK), nombre, tipo, dificultad, descripcion)
+CREATE TABLE tecnica (
+    id_tecnica INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(50) NOT NULL,
+    tipo VARCHAR(50) ,
+    dificultad VARCHAR(50) ,
+    descripcion VARCHAR(200) 
+);
+
+-- Table: MENSUALIDAD (id_mensualidad(PK), nombre, tipo, estado, monto)
+CREATE TABLE mensualidad (
+    id_mensualidad INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(50) ,
+    tipo VARCHAR(50) ,    
+    monto DECIMAL(10,2) NOT NULL CHECK (monto >= 0),
+    cif_escuela VARCHAR(9),
+    activa boolean,
+    FOREIGN KEY (cif_escuela) REFERENCES escuela(cif_escuela) ON DELETE CASCADE  ON UPDATE CASCADE  
+);
+-- Table: RANGO (id_rango(PK), cinturon, tiempo_minimo_meses, nivel)
+CREATE TABLE rango (
+    id_rango INT AUTO_INCREMENT PRIMARY KEY,
+    cinturon VARCHAR(50) ,
+    tiempo_minimo_meses int ,
+    nivel VARCHAR(100) NOT NULL
+);
+
+
+
+/*Tablas con foreign keys*/
+
+-- Table: PERSONA (usuario (PK), contrasenya, cif_escuela(FK), dni,nombre, apellido, email, edad,  ). El nombre y la edad podrían ser NOT NULL pero nos complica la creación de usuarios antes de asignarles subclase
+CREATE TABLE persona (
+	usuario VARCHAR(50) PRIMARY KEY,
+    contrasenya VARCHAR(255),
+    cif_escuela VARCHAR(9),
+    dni_persona  VARCHAR(9) UNIQUE,
+    nombre VARCHAR(50),
+    apellido VARCHAR(50) ,
+    email VARCHAR(255) ,
+    edad int CHECK (edad >= 0),
+    telefono VARCHAR(15) ,
+    activo boolean,
+    FOREIGN KEY (cif_escuela) REFERENCES escuela(cif_escuela) ON DELETE CASCADE  ON UPDATE CASCADE    
+);
+
+-- Table: ALUMNO (usuario(PK)(FK), fecha_matricula, id_alu_companiero(FK))
+CREATE TABLE alumno (
+    usuario VARCHAR(50) PRIMARY KEY,
+	fecha_matricula DATE NOT NULL,
+    usuario_alu_companiero VARCHAR(50),
+    CONSTRAINT usuario_alu_FK FOREIGN KEY (usuario) REFERENCES persona (usuario) ON DELETE CASCADE  ON UPDATE CASCADE,
+    CONSTRAINT usuario_companyero_FK FOREIGN KEY (usuario_alu_companiero) REFERENCES persona (usuario) ON DELETE CASCADE ON UPDATE CASCADE
+);
+-- Table: PROFESOR (usuario(PK)(FK), fecha_contratacion, salario)
+CREATE TABLE profesor (
+    usuario VARCHAR(50)   PRIMARY KEY  ,
+	fecha_contratacion DATE NOT NULL,
+    salario INT NOT NULL CHECK (salario >= 0),
+    CONSTRAINT usuario_profesor_FK FOREIGN KEY (usuario) REFERENCES persona (usuario) ON DELETE CASCADE ON UPDATE CASCADE
+);
+-- Table: CLASE (id_clase(PK),fecha_hora,duracion, usuario(FK))
+CREATE TABLE clase (
+	id_clase INT AUTO_INCREMENT PRIMARY KEY,
+    fecha_hora DATETIME ,
+    duracion INT CHECK (duracion > 0),
+    usuario  VARCHAR(50)   ,
+    CONSTRAINT usuario_clase_FK FOREIGN KEY (usuario) REFERENCES persona (usuario) ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+
+-- Table: PROFESOR_TECNICA (id_tecnica(PK)(FK)usuario(PK)(FK))
+CREATE TABLE profesor_tecnica (
+    usuario VARCHAR(50)  ,
+	id_tecnica INT ,
+    CONSTRAINT prof_tec_PK PRIMARY KEY (usuario,id_tecnica),
+    CONSTRAINT usuario_tecnica_profesor_FK FOREIGN KEY (usuario) REFERENCES profesor (usuario) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT id_tecnica_profesor_FK FOREIGN KEY (id_tecnica) REFERENCES tecnica (id_tecnica) ON DELETE RESTRICT ON UPDATE CASCADE
+);
+
+
+-- Table: TECNICA_ALUMNO (id_tecnica(PK)(FK)usuario(PK)(FK))
+CREATE TABLE tecnica_alumno (
+    usuario VARCHAR(50)  ,
+	id_tecnica INT ,
+    CONSTRAINT tec_alu_PK PRIMARY KEY (usuario,id_tecnica),
+    CONSTRAINT usuario_tecnica_alumno_FK FOREIGN KEY (usuario) REFERENCES alumno (usuario) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT id_tecnica_alumno_FK FOREIGN KEY (id_tecnica) REFERENCES tecnica (id_tecnica) ON DELETE RESTRICT ON UPDATE CASCADE
+);
+-- Table: ALUMNO_CLASE(id_clase(PK)(FK),usuario(PK)(FK))
+CREATE TABLE alumno_clase (
+    usuario VARCHAR(50) ,
+	id_clase INT ,
+    CONSTRAINT usuario_id_clase_PK PRIMARY KEY (usuario,id_clase),
+    CONSTRAINT usuario_alumno_clase_FK FOREIGN KEY (usuario) REFERENCES alumno (usuario) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT id_clase_FK FOREIGN KEY (id_clase) REFERENCES clase (id_clase) ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+
+-- Table: RANGO_ALUMNO(usuario(PK)(FK), id_rango(FK))
+CREATE TABLE rango_alumno (
+    usuario VARCHAR(50)  PRIMARY KEY,
+    id_rango INT ,	
+    CONSTRAINT usuario_rango_FK FOREIGN KEY (usuario) REFERENCES alumno (usuario)  ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT id_rango_FK FOREIGN KEY (id_rango) REFERENCES rango (id_rango)  ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- Table: PAGO(id_pago(PK), id_alumno(FK), id_mensualidad(FK), fecha_pago, metodo_pago)
+CREATE TABLE pago (
+    id_pago INT AUTO_INCREMENT PRIMARY KEY,
+    usuario VARCHAR(50),
+    id_mensualidad INT,
+    fecha_pago DATE NOT NULL,
+    metodo_pago VARCHAR(50),
+    CONSTRAINT usuario_pago_FK FOREIGN KEY (usuario) REFERENCES alumno (usuario) ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT id_mensualidad_FK FOREIGN KEY (id_mensualidad) REFERENCES mensualidad (id_mensualidad) ON DELETE RESTRICT ON UPDATE CASCADE
+);
+
+
+
+/*INSERTS DE EJEMPLO
+-----------------------------------------------------------------------------------------------
+*/
+
+/*TECNICAS JUDO*/
+/*---------------------------------------------------------------------------------*/
+
+/*Nage waza - derribos*/
+
+-- Dai Ikkyo (1º grupo) - Básica
+INSERT INTO tecnica (nombre, tipo, dificultad, descripcion) VALUES
+('De-ashi-barai', 'Proyección', 'Básica', 'Barrido del pie adelantado'),
+('Hiza-guruma', 'Proyección', 'Básica', 'Rueda de rodilla'),
+('Sasae-tsurikomi-ashi', 'Proyección', 'Básica', 'Bloqueo al pie de apoyo'),
+('Uki-goshi', 'Proyección', 'Básica', 'Cadera flotante'),
+('Osoto-gari', 'Proyección', 'Básica', 'Gran siega exterior'),
+('O-goshi', 'Proyección', 'Básica', 'Gran cadera'),
+('Ouchi-gari', 'Proyección', 'Básica', 'Gran siega interior'),
+('Seoi-nage', 'Proyección', 'Básica', 'Proyección por el hombro');
+
+-- Dai Nikyo (2º grupo) - Media
+INSERT INTO tecnica (nombre, tipo, dificultad, descripcion) VALUES
+('Kosoto-gari', 'Proyección', 'Media', 'Pequeña siega exterior'),
+('Kouchi-gari', 'Proyección', 'Media', 'Pequeña siega interior'),
+('Koshi-guruma', 'Proyección', 'Media', 'Rueda de cadera'),
+('Tsuri-komi-goshi', 'Proyección', 'Media', 'Proyección de cadera con levantamiento'),
+('Okuri-ashi-barai', 'Proyección', 'Media', 'Barrido de ambos pies'),
+('Tai-otoshi', 'Proyección', 'Media', 'Caída del cuerpo'),
+('Harai-goshi', 'Proyección', 'Media', 'Cadera con barrido'),
+('Uchi-mata', 'Proyección', 'Media', 'Barrido interno del muslo');
+
+-- Dai Sankyo (3º grupo) - Media
+INSERT INTO tecnica (nombre, tipo, dificultad, descripcion) VALUES
+('Kosoto-gake', 'Proyección', 'Media', 'Enganche exterior pequeño'),
+('Tsuri-goshi', 'Proyección', 'Media', 'Cadera con levantamiento'),
+('Yoko-otoshi', 'Proyección', 'Media', 'Caída lateral'),
+('Ashi-guruma', 'Proyección', 'Media', 'Rueda con la pierna'),
+('Hane-goshi', 'Proyección', 'Media', 'Cadera con resorte'),
+('Harai-tsurikomi-ashi', 'Proyección', 'Media', 'Barrido con levantamiento'),
+('Tomoe-nage', 'Proyección', 'Media', 'Proyección circular con el pie'),
+('Kata-guruma', 'Proyección', 'Media', 'Rueda por el hombro');
+
+-- Dai Yonkyo (4º grupo) - Avanzada
+INSERT INTO tecnica (nombre, tipo, dificultad, descripcion) VALUES
+('Sumi-gaeshi', 'Proyección', 'Avanzada', 'Sacrificio en esquina'),
+('Tani-otoshi', 'Proyección', 'Avanzada', 'Caída en el valle'),
+('Hane-makikomi', 'Proyección', 'Avanzada', 'Proyección en envoltura con resorte'),
+('Sukui-nage', 'Proyección', 'Avanzada', 'Proyección por recogida'),
+('Utsuri-goshi', 'Proyección', 'Avanzada', 'Cambio de cadera'),
+('O-guruma', 'Proyección', 'Avanzada', 'Gran rueda'),
+('Soto-makikomi', 'Proyección', 'Avanzada', 'Envoltura exterior'),
+('Uki-otoshi', 'Proyección', 'Avanzada', 'Caída flotante');
+
+-- Dai Gokyo (5º grupo) - Experta
+INSERT INTO tecnica (nombre, tipo, dificultad, descripcion) VALUES
+('Osoto-guruma', 'Proyección', 'Experta', 'Gran rueda exterior'),
+('Ura-nage', 'Proyección', 'Experta', 'Proyección hacia atrás'),
+('Sumi-otoshi', 'Proyección', 'Experta', 'Caída en esquina'),
+('Yoko-gake', 'Proyección', 'Experta', 'Enganche lateral'),
+('Yoko-guruma', 'Proyección', 'Experta', 'Rueda lateral'),
+('Ushiro-goshi', 'Proyección', 'Experta', 'Cadera hacia atrás'),
+('Ura-guruma', 'Proyección', 'Experta', 'Rueda inversa'),
+('Yoko-wakare', 'Proyección', 'Experta', 'Separación lateral');
+
+/*Shime waza   (estrangulaciones) */
+INSERT INTO tecnica (nombre, tipo, dificultad, descripcion) VALUES
+('Hadaka-jime', 'Shime Waza', 'Media', 'Estrangulamiento sin uso del judogi, directo al cuello. Mataleón.'),
+('Okuri-eri-jime', 'Shime Waza', 'Avanzada', 'Estrangulamiento con ambas solapas desde la espalda.'),
+('Kata-juji-jime', 'Shime Waza', 'Avanzada', 'Estrangulamiento en cruz, una mano sobre el cuello y la otra bajo.'),
+('Gyaku-juji-jime', 'Shime Waza', 'Avanzada', 'Estrangulamiento cruzado inverso.'),
+('Tsukkomi-jime', 'Shime Waza', 'Media', 'Usa una solapa y el cuello para aplicar presión.'),
+('Sankaku-jime', 'Shime Waza', 'Avanzada', 'Estrangulamiento triangular usando las piernas.');
+
+/*Osae Waza (inmovilizaciones)*/
+INSERT INTO tecnica (nombre, tipo, dificultad, descripcion) VALUES
+('Kesa-gatame', 'Osae Waza', 'Básica', 'Inmovilización lateral con control del cuello y brazo.'),
+('Yoko-shiho-gatame', 'Osae Waza', 'Media', 'Inmovilización desde un lado, controlando torso y caderas.'),
+('Tate-shiho-gatame', 'Osae Waza', 'Media', 'Inmovilización desde arriba, montando sobre el oponente.'),
+('Kami-shiho-gatame', 'Osae Waza', 'Media', 'Inmovilización desde la cabeza, sujetando los hombros.'),
+('Ushiro-kesa-gatame', 'Osae Waza', 'Avanzada', 'Variante de kesa desde posición invertida.'),
+('Kuzure-kami-shiho-gatame', 'Osae Waza', 'Avanzada', 'Variación de Kami-shiho-gatame con brazos por dentro.');
+
+INSERT INTO tecnica (nombre, tipo, dificultad, descripcion) VALUES
+('Ude-garami', 'Kansetsu Waza', 'Media', 'Luxación del brazo mediante torsión desde posición de control. Kimura en BJJ'),
+('Ude-hishigi-juji-gatame', 'Kansetsu Waza', 'Avanzada', 'Luxación de codo con el brazo extendido en cruz.'),
+('Ude-hishigi-ude-gatame', 'Kansetsu Waza', 'Avanzada', 'Luxación del codo bloqueando el brazo sobre el pecho.'),
+('Ude-hishigi-hiza-gatame', 'Kansetsu Waza', 'Avanzada', 'Luxación del brazo presionándolo con la rodilla.'),
+('Ude-hishigi-waki-gatame', 'Kansetsu Waza', 'Experta', 'Luxación del codo utilizando la axila como palanca.'),
+('Ashi-garami', 'Kansetsu Waza', 'Experta', 'Luxación de la pierna o rodilla mediante enroscado de piernas.');
+
+
+
+/*CINTURONES JUDO*/
+/*---------------------------------------------------------------------------------*/
+-- Cinturones de colores (kyu)
+INSERT INTO rango (cinturon, tiempo_minimo_meses, nivel) VALUES
+('Blanco', 0, 'Básico'),
+('Amarillo', 3, 'Básico'),
+('Naranja', 3, 'Intermedio'),
+('Verde', 6, 'Intermedio'),
+('Azul', 6, 'Intermedio'),
+('Marrón', 12, 'Avanzado');
+
+-- Cinturones negros (dan)
+INSERT INTO rango (cinturon, tiempo_minimo_meses, nivel) VALUES
+('Negro 1º Dan', 12, 'Avanzado'),
+('Negro 2º Dan', 24, 'Avanzado'),
+('Negro 3º Dan', 36, 'Avanzado'),
+('Negro 4º Dan', 48, 'Avanzado'),
+('Negro 5º Dan', 60, 'Avanzado'),
+('Rojo y blanco 6º Dan', 72, 'Experto'),
+('Rojo y blanco 7º Dan', 84, 'Experto'),
+('Rojo y blanco 8º Dan', 96, 'Experto'),
+('Rojo 9º Dan', 108, 'Maestro'),
+('Rojo 10º Dan', 120, 'Maestro');
+
+
+
+
+/*ESCUELAS DE EJEMPLO*/
+INSERT INTO `escuela`(`cif_escuela`, `nombre`, `direccion`, `email`, `tlfo`) VALUES ('12345678F','Izanami','Emilio Thuiller 12','info@izanami.es','655124578');
+
+/*PERSONAS DE EJEMPLO*/
+INSERT INTO `persona` (`usuario`, `contrasenya`, `cif_escuela`, `dni_persona`, `nombre`, `apellido`, `email`, `edad`, `telefono`, `activo`) VALUES ('flak8', '1234', '12345678F', '26812894P', 'Sergio', 'Castillo', 'sergcasor@gmail.com', '30', '655920966',true);
+INSERT INTO `persona` (`usuario`, `contrasenya`, `cif_escuela`, `dni_persona`, `nombre`, `apellido`, `email`, `edad`, `telefono`, `activo`) VALUES ('turi', '1234', '12345678F', '26887542P', 'Cristina', 'Aguilar', 'turi@gmail.com', '27', '655968574',true);
+INSERT INTO `persona` (`usuario`, `contrasenya`, `cif_escuela`, `dni_persona`, `nombre`, `apellido`, `email`, `edad`, `telefono`, `activo`) VALUES ('johndoe', '1234', '12345678F', '26811894X', 'John', 'Doe', 'johndoe@example.com', '51', '655124576',true);
+/**/
+INSERT INTO `persona` (`usuario`, `contrasenya`, `cif_escuela`, `dni_persona`, `nombre`, `apellido`, `email`, `edad`, `telefono`, `activo`) 
+VALUES ('eusebio1', '1234', '12345678F', '26900123A', 'Lucía', 'Martínez', 'eusebio.martinez@example.com', '34', '655111222', true);
+
+INSERT INTO `persona` (`usuario`, `contrasenya`, `cif_escuela`, `dni_persona`, `nombre`, `apellido`, `email`, `edad`, `telefono`, `activo`) 
+VALUES ('jaimito5', '1234', '12345678F', '26900456B', 'Jaime', 'López', 'jaime.lopez@example.com', '41', '655333444', true);
+
+INSERT INTO `persona` (`usuario`, `contrasenya`, `cif_escuela`, `dni_persona`, `nombre`, `apellido`, `email`, `edad`, `telefono`, `activo`) 
+VALUES ('benito25', '1234', '12345678F', '27910456B', 'Benito', 'Díaz', 'benito.diaz@example.com', '49', '655233144', true);
+
+
+
+
+/*ALUMNOS DE EJEMPLO*/
+INSERT INTO `alumno` (`usuario`, `fecha_matricula`, `usuario_alu_companiero`) VALUES ('turi', '2025-05-23', NULL);
+INSERT INTO `alumno` (`usuario`, `fecha_matricula`, `usuario_alu_companiero`) VALUES ('johndoe', '2025-05-23', NULL);
+INSERT INTO `alumno` (`usuario`, `fecha_matricula`, `usuario_alu_companiero`) 
+VALUES ('eusebio1', '2025-06-08', NULL);
+
+INSERT INTO `alumno` (`usuario`, `fecha_matricula`, `usuario_alu_companiero`) 
+VALUES ('jaimito5', '2025-06-08', NULL);
+
+INSERT INTO `alumno` (`usuario`, `fecha_matricula`, `usuario_alu_companiero`) 
+VALUES ('benito25', '2025-06-08', NULL);
+
+/*PROFESORES DE EJEMPLO*/
+INSERT INTO `profesor` (`usuario`, `fecha_contratacion`, `salario`) VALUES ('flak8', '2025-05-23', '1000.00');
+
+/*RANGOS DE EJEMPLO*/
+-- 2 cinturones negros 1º dan y 2 cinturones blancos
+INSERT INTO `rango_alumno` (`usuario`, `id_rango`) 
+VALUES ('eusebio1', '7');
+
+INSERT INTO `rango_alumno` (`usuario`, `id_rango`) 
+VALUES ('jaimito5', '7');
+
+INSERT INTO `rango_alumno` (`usuario`, `id_rango`) 
+VALUES ('benito25', '1');
+
+INSERT INTO `rango_alumno` (`usuario`, `id_rango`) 
+VALUES ('johndoe', '1');
+
+INSERT INTO `rango_alumno` (`usuario`, `id_rango`) 
+VALUES ('turi', '1');
+
+/*MENSUALIDADES DE EJEMPLO*/
+INSERT INTO `mensualidad`(`nombre`, `tipo`, `monto`,`cif_escuela`,`activa`) VALUES ('Basic','Básica','40.00','12345678F',true);
+
+/*CLASES DE EJEMPLO*/
+INSERT INTO `clase` (`id_clase`, `fecha_hora`, `duracion`, `usuario`) VALUES (NULL, '2025-06-20 16:38:37', '60', 'flak8'); -- profe insertado en clase
+INSERT INTO `alumno_clase` (`usuario`, `id_clase`) VALUES ('turi', '1');
+INSERT INTO `alumno_clase` (`usuario`, `id_clase`) VALUES ('eusebio1', '1');
+INSERT INTO `alumno_clase` (`usuario`, `id_clase`) VALUES ('jaimito5', '1');
+INSERT INTO `alumno_clase` (`usuario`, `id_clase`) VALUES ('johndoe', '1');
+INSERT INTO `alumno_clase` (`usuario`, `id_clase`) VALUES ('benito25', '1');
+
